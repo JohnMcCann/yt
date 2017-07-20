@@ -493,6 +493,8 @@ class Extrema(DerivedQuantity):
     non_zero : bool
         If True, only positive values are considered in the calculation.
         Default: False
+    bounds : list, optional
+        If supplied, ignores extrema outside these bounds.
 
     Examples
     --------
@@ -503,23 +505,28 @@ class Extrema(DerivedQuantity):
     ...                              ("gas", "temperature")])
 
     """
-    def count_values(self, fields, non_zero):
+    def count_values(self, fields, bounds, non_zero):
         self.num_vals = len(fields) * 2
 
-    def __call__(self, fields, non_zero = False):
+    def __call__(self, fields, bounds, non_zero = False):
         fields = ensure_list(fields)
-        rv = super(Extrema, self).__call__(fields, non_zero)
+        rv = super(Extrema, self).__call__(fields, bounds, non_zero)
         if len(rv) == 1: rv = rv[0]
         return rv
 
-    def process_chunk(self, data, fields, non_zero):
+    def process_chunk(self, data, fields, bounds, non_zero):
         vals = []
         for field in fields:
             field = data._determine_fields(field)[0]
             fd = data[field]
             if non_zero: fd = fd[fd > 0.0]
             if fd.size > 0:
-                vals += [fd.min(), fd.max()]
+                if bounds is not None:
+                    fs = np.sort(fd.v)
+                    vals += [ fs[fs.searchsorted(bounds[0], 'left' )  ]*fd.uq,
+                              fs[fs.searchsorted(bounds[1], 'right')-1]*fd.uq ]
+                else:
+                  vals += [fd.min(), fd.max()]
             else:
                 vals += [array_like_field(data, HUGE, field),
                          array_like_field(data, -HUGE, field)]

@@ -708,18 +708,18 @@ class YTDataContainer(object):
             return rv[1]
         return rv[1:]
 
-    def _compute_extrema(self, field):
+    def _compute_extrema(self, field, bounds=None):
         if self._extrema_cache is None:
             self._extrema_cache = {}
         if field not in self._extrema_cache:
             # Note we still need to call extrema for each field, as of right
             # now
-            mi, ma = self.quantities.extrema(field)
+            mi, ma = self.quantities.extrema(field, bounds)
             self._extrema_cache[field] = (mi, ma)
         return self._extrema_cache[field]
 
     _extrema_cache = None
-    def max(self, field, axis=None):
+    def max(self, field, axis=None, bounds=None):
         r"""Compute the maximum of a field, optionally along an axis.
 
         This will, in a parallel-aware fashion, compute the maximum of the
@@ -733,6 +733,8 @@ class YTDataContainer(object):
             The field to maximize.
         axis : string, optional
             If supplied, the axis to project the maximum along.
+        bounds : list, optional
+            If supplied, ignores maximum outside these bounds.
 
         Returns
         -------
@@ -748,7 +750,7 @@ class YTDataContainer(object):
             rv = ()
             fields = ensure_list(field)
             for f in fields:
-                rv += (self._compute_extrema(f)[1],)
+                rv += (self._compute_extrema(f, bounds)[1],)
             if len(fields) == 1:
                 return rv[0]
             else:
@@ -759,7 +761,7 @@ class YTDataContainer(object):
         else:
             raise NotImplementedError("Unknown axis %s" % axis)
 
-    def min(self, field, axis=None):
+    def min(self, field, axis=None, bounds=None):
         r"""Compute the minimum of a field.
 
         This will, in a parallel-aware fashion, compute the minimum of the
@@ -772,6 +774,8 @@ class YTDataContainer(object):
             The field to minimize.
         axis : string, optional
             If supplied, the axis to compute the minimum along.
+        bounds : list, optional
+            If supplied, ignores minimum outside these bounds.
 
         Returns
         -------
@@ -786,7 +790,7 @@ class YTDataContainer(object):
             rv = ()
             fields = ensure_list(field)
             for f in ensure_list(fields):
-                rv += (self._compute_extrema(f)[0],)
+                rv += (self._compute_extrema(f, bounds)[0],)
             if len(fields) == 1:
                 return rv[0]
             else:
